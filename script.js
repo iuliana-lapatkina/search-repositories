@@ -42,7 +42,6 @@ searchList.addEventListener('click', function (e) {
   fetch(`https://api.github.com/repositories/${target.id}`)
   .then(response => response.json())
   .then(response => {
-    console.log(response); //*
     let repoItem = addElement('li', undefined, 'repos-item');
     let repoName = addElement('p', `Name: ${response.name}`);
     let repoOwner = addElement('p', `Owner: ${response.owner.login}`);
