@@ -101,3 +101,8 @@ body {
 .highlight {
   background-color: #00bfff;
 }
+
+.warning {
+  font-size: 30px;
+  color: red;
+}

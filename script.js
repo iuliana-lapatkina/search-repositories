@@ -1,10 +1,11 @@
 let search = document.querySelector('.search');
 let searchList = document.querySelector('.search-list');
 let repos = document.querySelector('.repos');
-let closeButton = document.querySelector('.button-close');
 let selectedItem;
+let closeButton = document.querySelector('.button-close');
 
 function onSearch(e) {
+  document.querySelectorAll('.warning').forEach(el => el.remove());
   document.querySelectorAll('.search-item').forEach(el => el.remove());
   
   let searchWord = e.target.value;
@@ -19,6 +20,11 @@ function onSearch(e) {
     let searchItem = addElement('li', repoName, 'search-item', el.id);
     searchList.appendChild(searchItem);
   }))
+  .catch (e => {
+    if (e instanceof TypeError) {
+      searchList.insertAdjacentHTML('afterend', '<p class="warning">Error! Try to reload the page</p>');
+    }
+  })
 }
 
 onSearch = debounce(onSearch, 300)
@@ -36,6 +42,7 @@ searchList.addEventListener('click', function (e) {
   fetch(`https://api.github.com/repositories/${target.id}`)
   .then(response => response.json())
   .then(response => {
+    console.log(response); //*
     let repoItem = addElement('li', undefined, 'repos-item');
     let repoName = addElement('p', `Name: ${response.name}`);
     let repoOwner = addElement('p', `Owner: ${response.owner.login}`);
