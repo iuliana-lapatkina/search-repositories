@@ -6,26 +6,17 @@ let selectedItem;
 let resultArray;
 
 async function onSearch(e) {
-  document.querySelectorAll('.warning').forEach(el => el.remove());
-  document.querySelectorAll('.search-item').forEach(el => el.remove());
-  
+  clear();
+  let searchWord = e.target.value.trim();
+  if (!searchWord) return;
   try {
-    let searchWord = e.target.value;
-    let response = await fetch(`https://api.github.com/search/repositories?q=${searchWord} in:name &per_page=5 &sort=stars `);
-    let responseJson = await response.json();
-    resultArray = await responseJson.items;
-    let i = 1;
-    for (const el of resultArray) {
-      let repoName = el.name;
-      if (repoName.length > 27) {
-        repoName = repoName.substring(0, 27) + '...';
-      }
-      let searchItem = addElement('li', repoName, 'search-item', i);
-      searchList.appendChild(searchItem);
-      i++;
+    resultArray = await makeRequest (searchWord);
+    if (resultArray.length === 0) {
+      searchList.insertAdjacentElement('afterend', addElement('p', 'Nothing was found', 'warning'))
     }
+    await createSearchList(resultArray);
   } catch {
-    searchList.insertAdjacentHTML('afterend', '<p class="warning">Error! Please, try again</p>')
+    searchList.insertAdjacentElement('afterend', addElement('p', 'Nothing was found', 'warning'))
   }
 }
 
@@ -42,24 +33,45 @@ searchList.addEventListener('click', function (e) {
   let target = e.target;
   if (target.tagName != 'LI') return;
 
-  let repoItem = addElement('li', undefined, 'repos-item');
-  let repoName = addElement('p', `Name: ${resultArray[target.id-1].name}`);
-  let repoOwner = addElement('p', `Owner: ${resultArray[target.id-1].owner.login}`);
-  let repoStars = addElement('p', `Stars: ${resultArray[target.id-1].stargazers_count}`);
+  let repoItem = addElement(
+    'li',
+    `<p>Name: ${resultArray[target.id-1].name}</p><br>
+    <p>Owner: ${resultArray[target.id-1].owner.login}</p><br>
+    <p>Stars: ${resultArray[target.id-1].stargazers_count}</p>`,
+    'repos-item');
   let closeButton = addElement('button', undefined, 'button-close');
-  repoItem.appendChild(repoName);
-  repoItem.appendChild(repoOwner);
-  repoItem.appendChild(repoStars);
-  repoItem.appendChild(closeButton);
-  repos.appendChild(repoItem);
-  closeButton.addEventListener('click', function () {
-    closeButton.parentElement.remove();
-  })
-
+  repoItem.insertAdjacentElement('beforeEnd', closeButton);
+  repos.insertAdjacentElement('beforeEnd', repoItem);
+  
   search.value = '';
-  document.querySelectorAll('.search-item').forEach(el => el.remove());
-  document.querySelectorAll('.warning').forEach(el => el.remove());
+  clear();
 })
+
+document.addEventListener('click', function(e) {
+  if (e.target.className != 'button-close') return;
+  e.target.parentElement.remove();
+})
+
+async function clear() {
+  document.querySelectorAll('.warning').forEach(el => el.remove());
+  document.querySelectorAll('.search-item').forEach(el => el.remove());
+}
+
+async function makeRequest (needed) {
+  let response = await fetch(`https://api.github.com/search/repositories?q=${needed} in:name &per_page=5 &sort=stars `);
+  let responseJson = await response.json();
+  return resultArray = await responseJson.items;
+}
+
+function debounce (fn, debounceTime) {
+  let timer;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      fn.apply(this, args);
+    }, debounceTime);
+  }
+};
 
 function highlight(item) {
   if (selectedItem) {
@@ -73,16 +85,20 @@ function addElement(tagName, content, tagClass, tagId) {
   let element = document.createElement(tagName);
   if (tagClass) element.classList.add(tagClass);
   if (tagId) element.setAttribute('id', tagId);
-  if (content) element.textContent = content;
+  if (content) element.insertAdjacentHTML ('beforeEnd', content);
   return element;
 }
 
-function debounce (fn, debounceTime) {
-  let timer;
-  return function (...args) {
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      fn.apply(this, args);
-    }, debounceTime);
+function createSearchList(arr) {
+  let i = 1;
+  for (const el of arr) {
+    let repoName = el.name;
+    if (repoName.length > 27) {
+      repoName = repoName.substring(0, 27) + '...';
+    }
+    let searchItem = addElement('li', repoName, 'search-item', i);
+    searchList.insertAdjacentElement ('beforeEnd', searchItem);
+    i++;
   }
-};
+}
+
