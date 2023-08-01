@@ -1,33 +1,35 @@
 let search = document.querySelector('.search');
 let searchList = document.querySelector('.search-list');
 let repos = document.querySelector('.repos');
-let selectedItem;
 let closeButton = document.querySelector('.button-close');
+let selectedItem;
+let resultArray;
 
-function onSearch(e) {
+async function onSearch(e) {
   document.querySelectorAll('.warning').forEach(el => el.remove());
   document.querySelectorAll('.search-item').forEach(el => el.remove());
   
-  let searchWord = e.target.value;
-  fetch(`https://api.github.com/search/repositories?q=${searchWord} in:name &per_page=5 &sort=stars `)
-  .then(response => response.json())
-  .then(response => response.items)
-  .then(repos => repos.forEach(el => {
-    let repoName = el.name;
-    if (repoName.length > 27) {
-      repoName = repoName.substring(0, 27) + '...';
+  try {
+    let searchWord = e.target.value;
+    let response = await fetch(`https://api.github.com/search/repositories?q=${searchWord} in:name &per_page=5 &sort=stars `);
+    let responseJson = await response.json();
+    resultArray = await responseJson.items;
+    let i = 1;
+    for (const el of resultArray) {
+      let repoName = el.name;
+      if (repoName.length > 27) {
+        repoName = repoName.substring(0, 27) + '...';
+      }
+      let searchItem = addElement('li', repoName, 'search-item', i);
+      searchList.appendChild(searchItem);
+      i++;
     }
-    let searchItem = addElement('li', repoName, 'search-item', el.id);
-    searchList.appendChild(searchItem);
-  }))
-  .catch (e => {
-    if (e instanceof TypeError) {
-      searchList.insertAdjacentHTML('afterend', '<p class="warning">Error! Try to reload the page</p>');
-    }
-  })
+  } catch {
+    searchList.insertAdjacentHTML('afterend', '<p class="warning">Error! Please, try again</p>')
+  }
 }
 
-onSearch = debounce(onSearch, 300)
+onSearch = debounce(onSearch, 400)
 search.addEventListener('keyup', onSearch);
 
 searchList.addEventListener('mouseover', function (e) {
@@ -39,26 +41,24 @@ searchList.addEventListener('mouseover', function (e) {
 searchList.addEventListener('click', function (e) {
   let target = e.target;
   if (target.tagName != 'LI') return;
-  fetch(`https://api.github.com/repositories/${target.id}`)
-  .then(response => response.json())
-  .then(response => {
-    console.log(response); //*
-    let repoItem = addElement('li', undefined, 'repos-item');
-    let repoName = addElement('p', `Name: ${response.name}`);
-    let repoOwner = addElement('p', `Owner: ${response.owner.login}`);
-    let repoStars = addElement('p', `Stars: ${response.stargazers_count}`);
-    let closeButton = addElement('button', undefined, 'button-close');
-    repoItem.appendChild(repoName);
-    repoItem.appendChild(repoOwner);
-    repoItem.appendChild(repoStars);
-    repoItem.appendChild(closeButton);
-    repos.appendChild(repoItem);
-    closeButton.addEventListener('click', function () {
-      closeButton.parentElement.remove();
-    })
+
+  let repoItem = addElement('li', undefined, 'repos-item');
+  let repoName = addElement('p', `Name: ${resultArray[target.id-1].name}`);
+  let repoOwner = addElement('p', `Owner: ${resultArray[target.id-1].owner.login}`);
+  let repoStars = addElement('p', `Stars: ${resultArray[target.id-1].stargazers_count}`);
+  let closeButton = addElement('button', undefined, 'button-close');
+  repoItem.appendChild(repoName);
+  repoItem.appendChild(repoOwner);
+  repoItem.appendChild(repoStars);
+  repoItem.appendChild(closeButton);
+  repos.appendChild(repoItem);
+  closeButton.addEventListener('click', function () {
+    closeButton.parentElement.remove();
   })
+
   search.value = '';
   document.querySelectorAll('.search-item').forEach(el => el.remove());
+  document.querySelectorAll('.warning').forEach(el => el.remove());
 })
 
 function highlight(item) {
